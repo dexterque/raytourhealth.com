@@ -241,10 +241,13 @@ function weiyintex_menu_tree_from_location( $location ) {
 
 	foreach ( $items as $item ) {
 		$indexed[ $item->ID ] = array(
-			'title'    => $item->title,
-			'url'      => $item->url,
-			'children' => array(),
-			'parent'   => (int) $item->menu_item_parent,
+			'title'     => $item->title,
+			'url'       => $item->url,
+			'object'    => $item->object,
+			'object_id' => (int) $item->object_id,
+			'type'      => $item->type,
+			'children'  => array(),
+			'parent'    => (int) $item->menu_item_parent,
 		);
 	}
 
@@ -278,20 +281,34 @@ function weiyintex_is_current_menu_item( $item ) {
 	$title_slug   = sanitize_title( $item['title'] ?? '' );
 	$current_path = weiyintex_current_request_path();
 	$item_path    = weiyintex_normalized_menu_path( $item['url'] ?? '' );
+	$object       = $item['object'] ?? '';
+	$object_id    = absint( $item['object_id'] ?? 0 );
 
 	if ( 'home' === $title_slug ) {
-		return is_front_page() || '/' === $current_path;
+		return is_front_page();
 	}
 
 	if (
-		'products' === $title_slug
+		in_array( $title_slug, array( 'products', 'services' ), true )
 		&& ( is_post_type_archive( 'weiyintex_product' ) || is_tax( 'weiyintex_product_category' ) || is_singular( 'weiyintex_product' ) )
 	) {
 		return true;
 	}
 
-	if ( 'blog' === $title_slug && ! is_front_page() && ( is_home() || is_singular( 'post' ) ) ) {
+	if ( in_array( $title_slug, array( 'blog', 'guides' ), true ) && ! is_front_page() && ( is_home() || is_singular( 'post' ) ) ) {
 		return true;
+	}
+
+	if ( 'page' === $object && $object_id && is_page( $object_id ) ) {
+		return true;
+	}
+
+	if ( 'weiyintex_product_category' === $object && $object_id && is_tax( 'weiyintex_product_category', $object_id ) ) {
+		return true;
+	}
+
+	if ( '/' === $item_path ) {
+		return false;
 	}
 
 	return $item_path === $current_path;
@@ -370,37 +387,49 @@ function weiyintex_simple_head( $title = '' ) {
 		<link rel="stylesheet" href="<?php echo weiyintex_theme_asset( 'wp-content/themes/blocksy/static/bundle/main.min12fd.css?ver=2.0.42' ); ?>">
 		<style>
 			body.weiyintex-simple-page { --tefloor-blue: #273B92; --tefloor-blue-soft: rgba(39, 59, 146, 0.08); --tefloor-text: #141827; margin: 0; background: #fff; color: var(--tefloor-text); font-family: Poppins, Arial, sans-serif; }
-			.weiyintex-shell-header { border-bottom: 1px solid rgba(39, 59, 146, 0.12); background: rgba(255, 255, 255, 0.98); position: sticky; top: 0; z-index: 1000; box-shadow: 0 8px 26px rgba(20, 24, 39, 0.05); }
+			.weiyintex-shell-header { border-bottom: 1px solid rgba(39, 59, 146, 0.08); background: #fff; position: sticky; top: 0; z-index: 1000; box-shadow: none; }
 			.weiyintex-shell-inner { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-			.weiyintex-shell-nav { display: flex; align-items: center; justify-content: space-between; min-height: 88px; gap: 32px; }
+			.weiyintex-shell-nav { display: flex; align-items: stretch; justify-content: space-between; min-height: 110px; gap: 48px; }
 			.weiyintex-shell-logo { display: inline-flex; align-items: center; flex: 0 0 auto; }
-			.weiyintex-shell-logo img { width: 138px; max-width: min(38vw, 138px); height: auto; display: block; }
-			.weiyintex-shell-menu { display: flex; justify-content: flex-end; min-width: 0; }
-			.weiyintex-shell-menu ul#menu-main-menu { display: flex !important; align-items: center; gap: 8px; list-style: none; margin: 0; padding: 0; background: transparent !important; border: 0 !important; }
+			.weiyintex-shell-logo img { width: 150px; max-width: min(38vw, 150px); height: auto; display: block; }
+			.weiyintex-shell-menu { display: flex; align-items: stretch; justify-content: flex-end; min-width: 0; }
+			.weiyintex-shell-menu ul#menu-main-menu { display: flex !important; align-items: stretch; gap: clamp(26px, 3.2vw, 52px); list-style: none; margin: 0; padding: 0; background: transparent !important; border: 0 !important; }
 			.weiyintex-shell-menu li { position: relative; margin: 0 !important; padding: 0 !important; }
-			.weiyintex-shell-menu a.ct-menu-link { display: inline-flex !important; align-items: center; justify-content: center; min-height: 42px; padding: 0 15px !important; border-radius: 999px; color: var(--tefloor-blue) !important; background: transparent !important; text-decoration: none; font-weight: 600; font-size: 15px !important; line-height: 1; letter-spacing: 0; transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease; }
+			.weiyintex-shell-menu a.ct-menu-link { position: relative; display: inline-flex !important; align-items: center; justify-content: center; min-height: 110px; padding: 0 !important; border-radius: 0; color: var(--tefloor-blue) !important; background: transparent !important; text-decoration: none; font-weight: 700; font-size: 17px !important; line-height: 1; letter-spacing: 0; transition: color 0.18s ease; }
+			.weiyintex-shell-menu a.ct-menu-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--tefloor-blue); opacity: 0; transform: scaleX(0.55); transform-origin: center; transition: opacity 0.18s ease, transform 0.18s ease; }
 			.weiyintex-shell-menu a.ct-menu-link:hover,
-			.weiyintex-shell-menu a.ct-menu-link:focus-visible { color: var(--tefloor-blue) !important; background: var(--tefloor-blue-soft) !important; outline: none; }
+			.weiyintex-shell-menu a.ct-menu-link:focus-visible { color: #1f3185 !important; background: transparent !important; outline: none; }
+			.weiyintex-shell-menu a.ct-menu-link:hover::after,
+			.weiyintex-shell-menu a.ct-menu-link:focus-visible::after { opacity: 1; transform: scaleX(1); }
 			.weiyintex-shell-menu .current-menu-item > a.ct-menu-link,
 			.weiyintex-shell-menu .current-menu-parent > a.ct-menu-link,
-			.weiyintex-shell-menu .current-menu-ancestor > a.ct-menu-link { color: #fff !important; background: var(--tefloor-blue) !important; box-shadow: 0 8px 18px rgba(39, 59, 146, 0.18); }
+			.weiyintex-shell-menu .current-menu-ancestor > a.ct-menu-link { color: var(--tefloor-blue) !important; background: transparent !important; box-shadow: none; }
+			.weiyintex-shell-menu .current-menu-item > a.ct-menu-link::after,
+			.weiyintex-shell-menu .current-menu-parent > a.ct-menu-link::after,
+			.weiyintex-shell-menu .current-menu-ancestor > a.ct-menu-link::after { opacity: 1; transform: scaleX(1); }
 			.weiyintex-shell-menu .ct-toggle-dropdown-desktop { display: inline-flex; align-items: center; margin-left: 8px; color: currentColor !important; }
 			.weiyintex-shell-menu .ct-toggle-dropdown-desktop svg,
 			.weiyintex-shell-menu .ct-toggle-dropdown-desktop svg *,
 			.weiyintex-shell-menu .ct-toggle-dropdown-mobile svg,
 			.weiyintex-shell-menu .ct-toggle-dropdown-mobile svg * { display: block; color: currentColor !important; fill: currentColor !important; stroke: currentColor !important; }
 			.weiyintex-shell-menu .ct-toggle-dropdown-desktop-ghost { display: none !important; }
-			.weiyintex-shell-menu .sub-menu { display: none !important; position: absolute; left: 0; top: calc(100% + 10px); z-index: 1010; min-width: 250px; overflow: visible !important; background: #fff; border: 1px solid rgba(39, 59, 146, 0.12); border-radius: 8px; padding: 10px; box-shadow: 0 18px 42px rgba(20, 24, 39, 0.16); }
-			.weiyintex-shell-menu .sub-menu::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 10px; }
+			.weiyintex-shell-menu .sub-menu { display: none !important; position: absolute; left: 50%; top: 100%; z-index: 1010; min-width: 260px; overflow: visible !important; background: #fff; border: 1px solid rgba(39, 59, 146, 0.10); border-radius: 8px; padding: 10px; box-shadow: 0 18px 42px rgba(20, 24, 39, 0.13); transform: translateX(-50%); }
+			.weiyintex-shell-menu .sub-menu::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 12px; }
 			.weiyintex-shell-menu li:hover > .sub-menu,
-			.weiyintex-shell-menu li:focus-within > .sub-menu { display: grid !important; gap: 4px; visibility: visible !important; opacity: 1 !important; transform: none !important; pointer-events: auto !important; }
+			.weiyintex-shell-menu li:focus-within > .sub-menu { display: grid !important; gap: 4px; visibility: visible !important; opacity: 1 !important; transform: translateX(-50%) !important; pointer-events: auto !important; }
 			.weiyintex-shell-menu li:hover > .sub-menu > li,
 			.weiyintex-shell-menu li:focus-within > .sub-menu > li,
 			.weiyintex-shell-menu li:hover > .sub-menu > li > a.ct-menu-link,
 			.weiyintex-shell-menu li:focus-within > .sub-menu > li > a.ct-menu-link { visibility: visible !important; opacity: 1 !important; transform: none !important; }
-			.weiyintex-shell-menu .sub-menu .sub-menu { left: calc(100% + 10px); top: -10px; }
+			.weiyintex-shell-menu .sub-menu .sub-menu { left: calc(100% + 10px); top: -10px; transform: none; }
+			.weiyintex-shell-menu .sub-menu li:hover > .sub-menu,
+			.weiyintex-shell-menu .sub-menu li:focus-within > .sub-menu { transform: none !important; }
 			.weiyintex-shell-menu .sub-menu .menu-item-has-children > a.ct-menu-link { justify-content: space-between; gap: 16px; }
-			.weiyintex-shell-menu .sub-menu a.ct-menu-link { justify-content: flex-start; width: 100%; min-height: 36px; padding: 0 12px !important; border-radius: 6px; font-size: 13px !important; white-space: nowrap; box-shadow: none !important; }
+			.weiyintex-shell-menu .sub-menu a.ct-menu-link { justify-content: flex-start; width: 100%; min-height: 38px; padding: 0 12px !important; border-radius: 6px; font-size: 14px !important; font-weight: 600; white-space: nowrap; box-shadow: none !important; }
+			.weiyintex-shell-menu .sub-menu a.ct-menu-link::after { display: none; }
+			.weiyintex-shell-menu .sub-menu a.ct-menu-link:hover,
+			.weiyintex-shell-menu .sub-menu a.ct-menu-link:focus-visible,
+			.weiyintex-shell-menu .sub-menu .current-menu-item > a.ct-menu-link { background: var(--tefloor-blue-soft) !important; }
 			.weiyintex-page-hero { background: #f7f7f9; padding: 72px 0 50px; }
 			.weiyintex-page-hero h1 { margin: 0; font-size: 44px; line-height: 1.08; letter-spacing: 0; }
 			.weiyintex-page-content { padding: 54px 0 72px; }
@@ -425,7 +454,7 @@ function weiyintex_simple_head( $title = '' ) {
 			.weiyintex-blog-empty { margin: 0; color: #4f5668; }
 			.weiyintex-shell-footer { border-top: 1px solid #ececf0; padding: 28px 0; color: #696773; font-size: 13px; }
 			@media (max-width: 700px) { .weiyintex-product-detail { grid-template-columns: 1fr; justify-items: center; gap: 22px; } .weiyintex-product-detail-image { max-width: 420px; margin: 0 auto; } .weiyintex-product-detail-content { width: 100%; } }
-			@media (max-width: 900px) { .weiyintex-grid, .weiyintex-blog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .weiyintex-shell-nav { align-items: flex-start; flex-direction: column; min-height: 0; gap: 14px; padding: 18px 24px 14px; } .weiyintex-shell-logo img { width: 128px; } .weiyintex-shell-menu { width: 100%; justify-content: flex-start; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; scrollbar-width: none; } .weiyintex-shell-menu::-webkit-scrollbar { display: none; } .weiyintex-shell-menu ul#menu-main-menu { flex-wrap: nowrap; min-width: max-content; gap: 4px; } .weiyintex-shell-menu a.ct-menu-link { min-height: 36px; padding: 0 12px !important; font-size: 14px !important; } }
+			@media (max-width: 900px) { .weiyintex-grid, .weiyintex-blog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .weiyintex-shell-nav { align-items: flex-start; flex-direction: column; min-height: 0; gap: 14px; padding: 18px 24px 0; } .weiyintex-shell-logo img { width: 128px; } .weiyintex-shell-menu { width: 100%; justify-content: flex-start; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; scrollbar-width: none; } .weiyintex-shell-menu::-webkit-scrollbar { display: none; } .weiyintex-shell-menu ul#menu-main-menu { align-items: stretch; flex-wrap: nowrap; min-width: max-content; gap: 26px; } .weiyintex-shell-menu a.ct-menu-link { min-height: 44px; font-size: 15px !important; } }
 			@media (max-width: 560px) { .weiyintex-grid, .weiyintex-blog-grid { grid-template-columns: 1fr; } .weiyintex-shell-nav { padding-right: 18px; padding-left: 18px; } .weiyintex-page-hero h1 { font-size: 34px; } }
 		</style>
 		<?php wp_head(); ?>
