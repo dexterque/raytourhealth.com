@@ -10,6 +10,7 @@ index.php
 license.txt
 readme.html
 wp-*.php
+xmlrpc.php
 wp-admin/
 wp-includes/
 wp-content/database/
