@@ -12,6 +12,17 @@ readme.html
 wp-*.php
 wp-admin/
 wp-includes/
+wp-content/database/
+wp-content/db.php
+wp-content/db.php.disabled
+wp-content/plugins/
+wp-content/themes/blocksy/
+wp-content/themes/twentytwenty*/
+wp-content/uploads/
+!wp-content/uploads/2026/
+!wp-content/uploads/2026/06/
+!wp-content/uploads/2026/06/raytourhealth-medical-hero.png
+!wp-content/uploads/2026/06/raytourhealth-logo.png
 wp-content/cache/
 wp-content/upgrade/
 wp-content/backup*/
